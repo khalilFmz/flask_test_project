@@ -2,24 +2,6 @@ from flask import Flask, jsonify, request
 from flask_mongoengine import MongoEngine
 import json
 
-books = [
-    {'id': 0,
-     'title': 'A Fire Upon the Deep',
-     'author': 'Vernor Vinge',
-     'first_sentence': 'The coldsleep itself was dreamless.',
-     'year_published': '1992'},
-    {'id': 1,
-     'title': 'The Ones Who Walk Away From Omelas',
-     'author': 'Ursula K. Le Guin',
-     'first_sentence': 'With a clamor of bells that set the swallows soaring, the Festival of Summer came to the city Omelas, bright-towered by the sea.',
-     'published': '1973'},
-    {'id': 2,
-     'title': 'Dhalgren',
-     'author': 'Samuel R. Delany',
-     'first_sentence': 'to wound the autumnal city.',
-     'published': '1975'}
-]
-
 app = Flask(__name__)
 
 app.config['MONGODB_SETTINGS'] = {
@@ -32,7 +14,7 @@ db = MongoEngine()
 db.init_app(app)
 
 class Book(db.Document):
-    id = db.IntField(required = True, min_value = 0)
+    book_id = db.IntField(required = True, min_value = 0)
     title = db.StringField(required = True)
     author = db.StringField(required = True)
     first_sentence = db.StringField()
@@ -44,28 +26,32 @@ class Book(db.Document):
                 'first_sequence': self.first_sentence,
                 'published': self.published}
 
-@app.route('/', methods = ['PUT'])
-def add_book(**kwargs):
-    record = json.loads(request.data)
-    book = Book(id = request['id'],
-                title = request['title'],
-                author = request['author'],
-                first_sentence = request['first_sentence'],
-                published = request['request'])
-    #book = Book(**kwargs)
+@app.route('/add', methods = ['POST'])
+def add_book():
+    print('executing POST request')
+    #record = json.loads(request.data)
+    record = request.data
+    record = json.loads(record)
+
+    book = Book(book_id = record['book_id'],
+                title = record['title'],
+                author = record['author'],
+                first_sentence = record['first_sentence'],
+                published = record['published'])
     book.save()
-    return jsonify(book.to_json)
+    return jsonify(book)
 
-@app.route('/', methods = ['GET'])
+@app.route('/get', methods = ['GET'])
 def get_book():
-    book_id = request.args.get('id')
-    book = Book.objects.get(id = book_id).first()
-    if not book:
+    book_id = request.args.get('book_id')
+    print('THE ID YOU WERE LOOKING FOR {}'.format(book_id))
+    try:
+        book = Book.objects.get(book_id = book_id)
+        return jsonify(book)
+    except:
         return jsonify({'error': 'No book with that id'})
-    else:
-        return jsonify(book.to_json)
 
-    
+"""  
 @app.route('/')
 def hello_finamaze():
     return 'hello  !'
@@ -87,6 +73,6 @@ def api_id():
             rslt.append(book)
 
     return jsonify(rslt)
-
+"""
 if __name__ == '__main__':
-    app.run(debug = True, port = 8000)
+    app.run(debug = True)
